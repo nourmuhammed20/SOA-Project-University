@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/water.css@2/out/water.css">
+    <title>Add Student</title>
+</head>
+<body>
+
+<h2>Add Student</h2>
+
+<label for="numberOfStudents">Choose the number of students to add</label> <br/><br/>
+<input type="number" id="numberOfStudents" min="0" step="1" value="0" onchange="createForms(this.value)"><br>
+
+<div id="container"></div>
+
+<script>
+    function createForms(numOfStudents) {
+        var container = document.getElementById("container");
+        container.innerHTML = "";
+
+        for (var i = 1; i <= numOfStudents; i++) {
+            var newForm = document.createElement("div");
+            newForm.innerHTML = `<h3>Student ${i} </h3><form id="studentForm${i}">
+                <input placeholder="Id" type="text" id="id${i}" required><br>
+                <input placeholder="FirstName" type="text" id="firstName${i}" required><br>
+                <input placeholder="lastName" type="text" id="lastName${i}" required><br>
+                <input placeholder="gender" type="text" id="gender${i}" required><br>
+                <input placeholder="gpa" type="number" step="0.01" id="gpa${i}" required><br>
+                <input placeholder="level" type="number" step="1" id="level${i}" required><br>
+                <input placeholder="address" type="text" id="address${i}" required><br>
+            </form><br/>`;
+
+            container.appendChild(newForm);
+        }
+
+        if (numOfStudents > 0) {
+            var submitButton = document.createElement("button");
+            submitButton.type = "button";
+            submitButton.textContent = "Save";
+            submitButton.onclick = submitForm;
+            container.appendChild(submitButton);
+        }
+    }
+
+    function validateData() {
+        var isValid = true;
+        var numOfStudents = document.getElementById("numberOfStudents").value;
+
+        for (var i = 1; i <= numOfStudents; i++) {
+            var firstName = document.getElementById("firstName" + i).value;
+            var lastName = document.getElementById("lastName" + i).value;
+            var address = document.getElementById("address" + i).value;
+            var gpa = document.getElementById("gpa" + i).value;
+
+            if (!firstName.match(/^[a-zA-Z]+$/)) {
+                alert("Invalid first name for Student " + i);
+                isValid = false;
+            }
+
+            if (!lastName.match(/^[a-zA-Z]+$/)) {
+                alert("Invalid last name for Student " + i);
+                isValid = false;
+            }
+
+            if (!address.match(/^[a-zA-Z]+$/)) {
+                alert("Invalid address for Student " + i);
+                isValid = false;
+            }
+
+            if (isNaN(gpa) || gpa < 0 || gpa > 4) {
+                alert("Invalid GPA for Student " + i);
+                isValid = false;
+            }
+        }
+
+        return isValid;
+    }
+
+    function submitForm() {
+        var numberOfStudents = document.getElementById("numberOfStudents").value;
+
+        if (validateData()) {
+            var response = [];
+
+            for (var i = 1; i <= numberOfStudents; i++) {
+                // Get form data
+                var id = document.getElementById("id" + i).value;
+                var firstName = document.getElementById("firstName" + i).value;
+                var lastName = document.getElementById("lastName" + i).value;
+                var gender = document.getElementById("gender" + i).value;
+                var gpa = document.getElementById("gpa" + i).value;
+                var level = document.getElementById("level" + i).value;
+                var address = document.getElementById("address" + i).value;
+
+                // Create a JSON object with the form data
+                var formData = {
+                    id: id,
+                    firstName: firstName,
+                    lastName: lastName,
+                    gender: gender,
+                    gpa: gpa,
+                    level: level,
+                    address: address
+                };
+
+                response.push(formData);
+            }
+
+            // Make an AJAX request to your API endpoint
+            var xhr = new XMLHttpRequest();
+            xhr.open("POST", "/students/saveStudents", true);
+            xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+
+            xhr.onreadystatechange = function () {
+                if (xhr.readyState === 4) {
+                    if (xhr.status === 200) {
+                        // Handle the success response
+                        alert(xhr.responseText);
+                    } else {
+                        // Handle the error response
+                        alert("Error saving students: " + xhr.status);
+                    }
+                }
+            };
+
+            xhr.send(JSON.stringify(response)); // Send as an array to match your API endpoint
+        }
+    }
+</script>
+</body>
+</html>
