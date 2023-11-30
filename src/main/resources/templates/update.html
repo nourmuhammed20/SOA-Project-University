@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/water.css@2/out/water.css">
+  <title>Update page</title>
+</head>
+<body>
+<h3>Student Update</h3>
+<form id="studentForm${i}">
+  <input placeholder="Id" type="text" id="id${i}" required><br>
+  <input placeholder="FirstName" type="text" id="firstName" required><br>
+  <input placeholder="lastName" type="text" id="lastName" required><br>
+  <input placeholder="gender" type="text" id="gender" required><br>
+  <input placeholder="gpa" type="number" id="gpa" required><br>
+  <input placeholder="level" type="number" id="level" required><br>
+  <input placeholder="address" type="text" id="address" required><br>
+  <input type="submit" value="Update">
+</form><br/>
+</body>
+</html>

@@ -16,6 +16,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import java.util.stream.Collectors;
 
 
 //This Controller handle the XML Whole Logic and make API for Each Function
@@ -26,27 +27,43 @@ public class StudentController {
 
     private static final String XML_FILE_PATH = "src/main/java/com/SOA/universityproject/university.xml";
 
-    private void sortStudentsInXmlFile(Document doc) {
-        NodeList studentNodes = doc.getElementsByTagName("Student");
-        List<Element> studentElements = new ArrayList<>();
+    @GetMapping("/sort")
+    public List<StudentRequest> getSortedStudents() {
+        String attribute="id";
+        String method ="desc";
+        List<StudentRequest> students = getAllStudents();
 
-        for (int i = 0; i < studentNodes.getLength(); i++) {
-            Element studentElement = (Element) studentNodes.item(i);
-            studentElements.add(studentElement);
+        // Sort students based on the given attribute and method
+        Comparator<StudentRequest> comparator = getComparator(attribute, method);
+        List<StudentRequest> sortedStudents = students.stream().sorted(comparator).collect(Collectors.toList());
+
+        return sortedStudents;
+    }
+
+    private Comparator<StudentRequest> getComparator(String attribute, String method) {
+        Comparator<StudentRequest> comparator;
+
+        switch (attribute.toLowerCase()) {
+            case "id":
+                comparator = Comparator.comparing(StudentRequest::getId);
+                break;
+            case "firstname":
+                comparator = Comparator.comparing(StudentRequest::getFirstName);
+                break;
+            case "lastname":
+                comparator = Comparator.comparing(StudentRequest::getLastName);
+                break;
+            // Add more cases for other attributes as needed
+            default:
+                throw new IllegalArgumentException("Invalid attribute: " + attribute);
         }
 
-        // Sort the student elements by ID
-        Collections.sort(studentElements, Comparator.comparing(e -> e.getAttribute("ID")));
-
-        // Clear existing students from the document
-        while (studentNodes.getLength() > 0) {
-            studentNodes.item(0).getParentNode().removeChild(studentNodes.item(0));
+        // Handle sorting method (asc or desc)
+        if (method.equalsIgnoreCase("desc")) {
+            comparator = comparator.reversed();
         }
 
-        // Add sorted students back to the document
-        for (Element sortedStudent : studentElements) {
-            doc.getDocumentElement().appendChild(doc.importNode(sortedStudent, true));
-        }
+        return comparator;
     }
 
     @GetMapping("/allStudents")
@@ -146,7 +163,6 @@ public class StudentController {
             }
 
             DOMSource source = new DOMSource(doc);
-            sortStudentsInXmlFile(doc);
             Result result = new StreamResult(xmlFile);
 //          used to  transform the source object into the result object
             TransformerFactory transformerFactory = TransformerFactory.newInstance();
@@ -164,6 +180,7 @@ public class StudentController {
 
         return "Students saved successfully.";
     }
+
 
     @GetMapping("/searchByGPA")
     public List<StudentRequest> searchByGPA(@RequestParam double gpa) {
@@ -329,6 +346,7 @@ public class StudentController {
         return null;
     }
 
+    @GetMapping("/validate")
     private boolean isStudentAlreadySaved(Document doc, String studentId) {
         Element root = doc.getDocumentElement();
         Element[] students = getChildElements(root, "Student");

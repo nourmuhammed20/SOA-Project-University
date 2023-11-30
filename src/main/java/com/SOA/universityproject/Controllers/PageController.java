@@ -20,6 +20,11 @@ import org.springframework.web.bind.annotation.RequestMapping;
             return "Add.html";
         }
 
+        @GetMapping("/update")
+        public String update() {
+            return "update.html";
+        }
+
         @GetMapping("/searchName")
         public String search() {
             return "searchByName.html";
