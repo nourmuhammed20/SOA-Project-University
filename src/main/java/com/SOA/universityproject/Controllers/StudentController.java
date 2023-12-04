@@ -1,8 +1,13 @@
 package com.SOA.universityproject.Controllers;
 
 import com.SOA.universityproject.Model.StudentRequest;
+import com.SOA.universityproject.Model.University;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.w3c.dom.*;
+
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.transform.*;
@@ -13,10 +18,8 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.StringWriter;
 import java.util.ArrayList;
-
 import java.util.Comparator;
 import java.util.List;
-import java.util.stream.Collectors;
 
 
 //This Controller handle the XML Whole Logic and make API for Each Function
@@ -27,44 +30,6 @@ public class StudentController {
 
     private static final String XML_FILE_PATH = "src/main/java/com/SOA/universityproject/university.xml";
 
-    @GetMapping("/sort")
-    public List<StudentRequest> getSortedStudents() {
-        String attribute="id";
-        String method ="desc";
-        List<StudentRequest> students = getAllStudents();
-
-        // Sort students based on the given attribute and method
-        Comparator<StudentRequest> comparator = getComparator(attribute, method);
-        List<StudentRequest> sortedStudents = students.stream().sorted(comparator).collect(Collectors.toList());
-
-        return sortedStudents;
-    }
-
-    private Comparator<StudentRequest> getComparator(String attribute, String method) {
-        Comparator<StudentRequest> comparator;
-
-        switch (attribute.toLowerCase()) {
-            case "id":
-                comparator = Comparator.comparing(StudentRequest::getId);
-                break;
-            case "firstname":
-                comparator = Comparator.comparing(StudentRequest::getFirstName);
-                break;
-            case "lastname":
-                comparator = Comparator.comparing(StudentRequest::getLastName);
-                break;
-            // Add more cases for other attributes as needed
-            default:
-                throw new IllegalArgumentException("Invalid attribute: " + attribute);
-        }
-
-        // Handle sorting method (asc or desc)
-        if (method.equalsIgnoreCase("desc")) {
-            comparator = comparator.reversed();
-        }
-
-        return comparator;
-    }
 
     @GetMapping("/allStudents")
     public List<StudentRequest> getAllStudents() {
@@ -185,96 +150,7 @@ public class StudentController {
     }
 
 
-    @GetMapping("/searchByGPA")
-    public List<StudentRequest> searchByGPA(@RequestParam double gpa) {
-        List<StudentRequest> result = new ArrayList<>();
 
-        try {
-            File xmlFile = new File(XML_FILE_PATH);
-
-            // Check if the file exists before attempting to parse it
-            if (!xmlFile.exists()) {
-                System.out.println("No students have been saved yet.");
-                return result;
-            }
-
-            DocumentBuilderFactory dbf = DocumentBuilderFactory.newDefaultInstance();
-            DocumentBuilder builder = dbf.newDocumentBuilder();
-            Document doc = builder.parse(xmlFile);
-
-            NodeList studentNodes = doc.getElementsByTagName("Student");
-
-            for (int i = 0; i < studentNodes.getLength(); i++) {
-                Element studentElement = (Element) studentNodes.item(i);
-                String studentId = studentElement.getAttribute("ID");
-                double studentGPA = Double.parseDouble(getElementValue(studentElement, "GPA"));
-
-                if (studentGPA == gpa) {
-                    StudentRequest studentResponse = new StudentRequest();
-                    studentResponse.setId(studentId);
-                    studentResponse.setFirstName(getElementValue(studentElement, "FirstName"));
-                    studentResponse.setLastName(getElementValue(studentElement, "LastName"));
-                    studentResponse.setGender(getElementValue(studentElement, "Gender"));
-                    studentResponse.setGpa(studentGPA);
-                    studentResponse.setLevel(Integer.parseInt(getElementValue(studentElement, "Level")));
-                    studentResponse.setAddress(getElementValue(studentElement, "Address"));
-
-                    result.add(studentResponse);
-                }
-            }
-
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-
-        return result;
-    }
-
-
-    @GetMapping("/searchByFirstName")
-    public List<StudentRequest> searchByFirstName(@RequestParam String firstName) {
-        List<StudentRequest> result = new ArrayList<>();
-
-        try {
-            File xmlFile = new File(XML_FILE_PATH);
-
-            // Check if the file exists before attempting to parse it
-            if (!xmlFile.exists()) {
-                System.out.println("No students have been saved yet.");
-                return result; // Return an empty list indicating no students found
-            }
-
-            DocumentBuilderFactory dbf = DocumentBuilderFactory.newDefaultInstance();
-            DocumentBuilder builder = dbf.newDocumentBuilder();
-            Document doc = builder.parse(xmlFile);
-
-            NodeList studentNodes = doc.getElementsByTagName("Student");
-
-            for (int i = 0; i < studentNodes.getLength(); i++) {
-                Element studentElement = (Element) studentNodes.item(i);
-                String studentId = studentElement.getAttribute("ID");
-                String studentFirstName = getElementValue(studentElement, "FirstName");
-
-                if (studentFirstName != null && studentFirstName.equals(firstName)) {
-                    StudentRequest studentResponse = new StudentRequest();
-                    studentResponse.setId(studentId);
-                    studentResponse.setFirstName(studentFirstName);
-                    studentResponse.setLastName(getElementValue(studentElement, "LastName"));
-                    studentResponse.setGender(getElementValue(studentElement, "Gender"));
-                    studentResponse.setGpa(Double.parseDouble(getElementValue(studentElement, "GPA")));
-                    studentResponse.setLevel(Integer.parseInt(getElementValue(studentElement, "Level")));
-                    studentResponse.setAddress(getElementValue(studentElement, "Address"));
-
-                    result.add(studentResponse);
-                }
-            }
-
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-
-        return result;
-    }
 
     @DeleteMapping("/deleteById/{id}")
     public String deleteStudentById(@PathVariable String id) {
@@ -374,56 +250,126 @@ public class StudentController {
 
         return elements.toArray(new Element[0]);
     }
+//////////////////////////////////// Sort Function //////////////////////////////////////////////////////////////////////
+@GetMapping("/sort")
+public List<StudentRequest> sortStudents(@RequestParam String sortBy,
+                           @RequestParam boolean ascending,
+                           Model model) {
+    List<StudentRequest> sortedStudents =sortStudents(sortBy, ascending);
 
+    model.addAttribute("sortedStudents", sortedStudents);
+    return sortedStudents;
+}
+    private University university = new University();
 
+    public List<StudentRequest> sortStudents(String sortBy, boolean ascending) {
+        List<StudentRequest> students = getAllStudents();
+        if (students != null) {
 
-////////////////////////////////////////////////////
-    @GetMapping("/searchById")
-    public List<StudentRequest> searchById(@RequestParam double id) {
-        List<StudentRequest> result = new ArrayList<>();
-    
-        try {
-            File xmlFile = new File(XML_FILE_PATH);
-    
-            // Check if the file exists before attempting to parse it
-            if (!xmlFile.exists()) {
-                System.out.println("No students have been saved yet.");
-                return result;
+            Comparator<StudentRequest> comparator = getComparator(sortBy);
+            if (ascending) {
+
+                students.sort(comparator);
+            } else {
+
+                students.sort(comparator.reversed());
             }
-    
+            university.setStudents(students);
+
+            writeUniversity(university); // Overwrite the file with sorted students
+        }
+
+        return students;
+    }
+    public University readUniversity() {
+        return (University) XmlParser.readXml(University.class);
+    }
+    public void writeUniversity(University university) {
+        XmlParser.writeXml(university);
+    }
+    private Comparator<StudentRequest> getComparator(String sortBy) {
+
+        sortBy = sortBy.toLowerCase();
+
+        switch (sortBy) {
+            case "id":
+                return Comparator.comparing(StudentRequest::getId);
+            case "firstname":
+                return Comparator.comparing(StudentRequest::getFirstName);
+            case "lastname":
+                return Comparator.comparing(StudentRequest::getLastName);
+            case "gender":
+                return Comparator.comparing(StudentRequest::getGender);
+            case "gpa":
+                return Comparator.comparing(StudentRequest::getGpa);
+            case "level":
+                return Comparator.comparing(StudentRequest::getLevel);
+            case "address":
+                return Comparator.comparing(StudentRequest::getAddress);
+            default:
+                throw new IllegalArgumentException("Invalid attribute for sorting.");
+        }
+    }
+
+//////////////////////////////////// Search Function ////////////////////////////////////////////////////////////////////
+    @GetMapping("/search")
+    public ResponseEntity<?> searchStudents(@RequestParam(required = false) String query) {
+        List<StudentRequest> result = new ArrayList<>();
+
+        try {
             DocumentBuilderFactory dbf = DocumentBuilderFactory.newDefaultInstance();
             DocumentBuilder builder = dbf.newDocumentBuilder();
-            Document doc = builder.parse(xmlFile);
-    
+            Document doc = builder.parse(new File(XML_FILE_PATH));
+
             NodeList studentNodes = doc.getElementsByTagName("Student");
-    
+
             for (int i = 0; i < studentNodes.getLength(); i++) {
                 Element studentElement = (Element) studentNodes.item(i);
-                String studentId = studentElement.getAttribute("ID");
-    
-                // Check if the studentId matches the provided double ID
-                if (Double.parseDouble(studentId) == id) {
+
+                String studentId = studentElement.getAttribute("ID").toLowerCase();
+                String studentFirstName = getElementValue(studentElement, "FirstName").toLowerCase();
+                String studentLastName = getElementValue(studentElement, "LastName").toLowerCase();
+                double studentGPA = Double.parseDouble(getElementValue(studentElement, "GPA"));
+                int studentLevel = Integer.parseInt(getElementValue(studentElement, "Level"));
+                String studentAddress = getElementValue(studentElement, "Address").toLowerCase();
+
+                String lowercaseQuery = query.toLowerCase();
+
+
+                // Check if the query matches any of the attributes
+                if (studentId.contains(lowercaseQuery)
+                        || studentFirstName.contains(lowercaseQuery)
+                        || studentLastName.contains(lowercaseQuery)
+                        || String.valueOf(studentGPA).contains(lowercaseQuery)
+                        || String.valueOf(studentLevel).contains(lowercaseQuery)
+                        || studentAddress.contains(lowercaseQuery)) {
+
                     StudentRequest studentResponse = new StudentRequest();
                     studentResponse.setId(studentId);
                     studentResponse.setFirstName(getElementValue(studentElement, "FirstName"));
                     studentResponse.setLastName(getElementValue(studentElement, "LastName"));
                     studentResponse.setGender(getElementValue(studentElement, "Gender"));
-                    studentResponse.setGpa(Double.parseDouble(getElementValue(studentElement, "GPA")));
-                    studentResponse.setLevel(Integer.parseInt(getElementValue(studentElement, "Level")));
+                    studentResponse.setGpa(studentGPA);
+                    studentResponse.setLevel(studentLevel);
                     studentResponse.setAddress(getElementValue(studentElement, "Address"));
-    
+
                     result.add(studentResponse);
                 }
             }
-    
+
+            // Check if the result list is empty
+            if (result.isEmpty()) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body("No Student Found");
+            }
+
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
-    
-        return result;
+
+        return ResponseEntity.ok(result);
     }
 
-    @PostMapping("/updateStudent")
+///////////////////////////////////// update Function ///////////////////////////////////////////
     public String updateStudent(@RequestBody List<StudentRequest> studentRequests) {
         try {
                 if (!validateStudentData(studentRequests.get(0))) {
@@ -548,5 +494,182 @@ public class StudentController {
         return isValid;
     }
 
+//    @GetMapping("/searchById")
+//    public List<StudentRequest> searchById(@RequestParam double id) {
+//        List<StudentRequest> result = new ArrayList<>();
+//
+//        try {
+//            File xmlFile = new File(XML_FILE_PATH);
+//
+//            // Check if the file exists before attempting to parse it
+//            if (!xmlFile.exists()) {
+//                System.out.println("No students have been saved yet.");
+//                return result;
+//            }
+//
+//            DocumentBuilderFactory dbf = DocumentBuilderFactory.newDefaultInstance();
+//            DocumentBuilder builder = dbf.newDocumentBuilder();
+//            Document doc = builder.parse(xmlFile);
+//
+//            NodeList studentNodes = doc.getElementsByTagName("Student");
+//
+//            for (int i = 0; i < studentNodes.getLength(); i++) {
+//                Element studentElement = (Element) studentNodes.item(i);
+//                String studentId = studentElement.getAttribute("ID");
+//
+//                // Check if the studentId matches the provided double ID
+//                if (Double.parseDouble(studentId) == id) {
+//                    StudentRequest studentResponse = new StudentRequest();
+//                    studentResponse.setId(studentId);
+//                    studentResponse.setFirstName(getElementValue(studentElement, "FirstName"));
+//                    studentResponse.setLastName(getElementValue(studentElement, "LastName"));
+//                    studentResponse.setGender(getElementValue(studentElement, "Gender"));
+//                    studentResponse.setGpa(Double.parseDouble(getElementValue(studentElement, "GPA")));
+//                    studentResponse.setLevel(Integer.parseInt(getElementValue(studentElement, "Level")));
+//                    studentResponse.setAddress(getElementValue(studentElement, "Address"));
+//
+//                    result.add(studentResponse);
+//                }
+//            }
+//
+//        } catch (Exception e) {
+//            throw new RuntimeException(e);
+//        }
+//
+//        return result;
+//    }
+//    @GetMapping("/searchByGPA")
+//    public List<StudentRequest> searchByGPA(@RequestParam double gpa) {
+//        List<StudentRequest> result = new ArrayList<>();
+//
+//        try {
+//            File xmlFile = new File(XML_FILE_PATH);
+//
+//            // Check if the file exists before attempting to parse it
+//            if (!xmlFile.exists()) {
+//                System.out.println("No students have been saved yet.");
+//                return result;
+//            }
+//
+//            DocumentBuilderFactory dbf = DocumentBuilderFactory.newDefaultInstance();
+//            DocumentBuilder builder = dbf.newDocumentBuilder();
+//            Document doc = builder.parse(xmlFile);
+//
+//            NodeList studentNodes = doc.getElementsByTagName("Student");
+//
+//            for (int i = 0; i < studentNodes.getLength(); i++) {
+//                Element studentElement = (Element) studentNodes.item(i);
+//                String studentId = studentElement.getAttribute("ID");
+//                double studentGPA = Double.parseDouble(getElementValue(studentElement, "GPA"));
+//
+//                if (studentGPA == gpa) {
+//                    StudentRequest studentResponse = new StudentRequest();
+//                    studentResponse.setId(studentId);
+//                    studentResponse.setFirstName(getElementValue(studentElement, "FirstName"));
+//                    studentResponse.setLastName(getElementValue(studentElement, "LastName"));
+//                    studentResponse.setGender(getElementValue(studentElement, "Gender"));
+//                    studentResponse.setGpa(studentGPA);
+//                    studentResponse.setLevel(Integer.parseInt(getElementValue(studentElement, "Level")));
+//                    studentResponse.setAddress(getElementValue(studentElement, "Address"));
+//
+//                    result.add(studentResponse);
+//                }
+//            }
+//
+//        } catch (Exception e) {
+//            throw new RuntimeException(e);
+//        }
+//
+//        return result;
+//    }
+//
+//    public List<StudentRequest> searchByLevel(@RequestParam int Level) {
+//        List<StudentRequest> result = new ArrayList<>();
+//
+//        try {
+//            File xmlFile = new File(XML_FILE_PATH);
+//
+//            // Check if the file exists before attempting to parse it
+//            if (!xmlFile.exists()) {
+//                System.out.println("No students have been saved yet.");
+//                return result;
+//            }
+//
+//            DocumentBuilderFactory dbf = DocumentBuilderFactory.newDefaultInstance();
+//            DocumentBuilder builder = dbf.newDocumentBuilder();
+//            Document doc = builder.parse(xmlFile);
+//
+//            NodeList studentNodes = doc.getElementsByTagName("Student");
+//
+//            for (int i = 0; i < studentNodes.getLength(); i++) {
+//                Element studentElement = (Element) studentNodes.item(i);
+//                String studentId = studentElement.getAttribute("ID");
+//                double studentGPA = Double.parseDouble(getElementValue(studentElement, "GPA"));
+//
+//                if (studentGPA == Level) {
+//                    StudentRequest studentResponse = new StudentRequest();
+//                    studentResponse.setId(studentId);
+//                    studentResponse.setFirstName(getElementValue(studentElement, "FirstName"));
+//                    studentResponse.setLastName(getElementValue(studentElement, "LastName"));
+//                    studentResponse.setGender(getElementValue(studentElement, "Gender"));
+//                    studentResponse.setGpa(studentGPA);
+//                    studentResponse.setLevel(Integer.parseInt(getElementValue(studentElement, "Level")));
+//                    studentResponse.setAddress(getElementValue(studentElement, "Address"));
+//
+//                    result.add(studentResponse);
+//                }
+//            }
+//
+//        } catch (Exception e) {
+//            throw new RuntimeException(e);
+//        }
+//
+//        return result;
+//    }
+//
+//    @GetMapping("/searchByFirstName")
+//    public List<StudentRequest> searchByFirstName(@RequestParam String firstName) {
+//        List<StudentRequest> result = new ArrayList<>();
+//
+//        try {
+//            File xmlFile = new File(XML_FILE_PATH);
+//
+//            // Check if the file exists before attempting to parse it
+//            if (!xmlFile.exists()) {
+//                System.out.println("No students have been saved yet.");
+//                return result; // Return an empty list indicating no students found
+//            }
+//
+//            DocumentBuilderFactory dbf = DocumentBuilderFactory.newDefaultInstance();
+//            DocumentBuilder builder = dbf.newDocumentBuilder();
+//            Document doc = builder.parse(xmlFile);
+//
+//            NodeList studentNodes = doc.getElementsByTagName("Student");
+//
+//            for (int i = 0; i < studentNodes.getLength(); i++) {
+//                Element studentElement = (Element) studentNodes.item(i);
+//                String studentId = studentElement.getAttribute("ID");
+//                String studentFirstName = getElementValue(studentElement, "FirstName");
+//
+//                if (studentFirstName != null && studentFirstName.equals(firstName)) {
+//                    StudentRequest studentResponse = new StudentRequest();
+//                    studentResponse.setId(studentId);
+//                    studentResponse.setFirstName(studentFirstName);
+//                    studentResponse.setLastName(getElementValue(studentElement, "LastName"));
+//                    studentResponse.setGender(getElementValue(studentElement, "Gender"));
+//                    studentResponse.setGpa(Double.parseDouble(getElementValue(studentElement, "GPA")));
+//                    studentResponse.setLevel(Integer.parseInt(getElementValue(studentElement, "Level")));
+//                    studentResponse.setAddress(getElementValue(studentElement, "Address"));
+//
+//                    result.add(studentResponse);
+//                }
+//            }
+//
+//        } catch (Exception e) {
+//            throw new RuntimeException(e);
+//        }
+//
+//        return result;
+//    }
 
 }

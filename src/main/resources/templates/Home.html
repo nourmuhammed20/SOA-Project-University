@@ -29,21 +29,40 @@
               <li><a href="/delete" data-section=".timeline">Delete</a></li>
               <li>
                 <a href="/searchName" data-section=".Ourgallery"
-                  >Search By Name</a
+                  >Search</a
                 >
               </li>
-              <li>
-                <a href="/searchByGpa" data-section=".skills">Search By GPA</a>
-              </li>
-              <li>
-                <a href="/searchById" data-section=".skills">Search By ID</a>
-              </li>
+<!--              <li>-->
+<!--                <a href="/searchByGpa" data-section=".skills">Search By GPA</a>-->
+<!--              </li>-->
+<!--              <li>-->
+<!--                <a href="/searchById" data-section=".skills">Search By ID</a>-->
+<!--              </li>-->
             </ul>
           </div>
         </div>
       </div>
       <div class="intro-text">
         <h1>All Students</h1>
+        <form id="sortForm" action="" method="post" style="display:flex; margin:1.25rem 0;">
+          <select id="sortBySelect">
+            <option selected value="null" disabled>Select Attribute to sort by</option>
+            <option value="id">ID</option>
+            <option value="fname">First Name</option>
+            <option value="lname">Last Name</option>
+            <option value="level">Level</option>
+            <option value="gpa">GPA</option>
+            <option value="address">Address</option>
+          </select>
+          <select id="sortMethodSelect">
+            <option selected  value="null"  disabled>sort Method</option>
+            <option value="asc">Ascending</option>
+            <option value="desc">Descending</option>
+          </select>
+
+        <button type="button"  onclick="sortStudents()">Sort</button>
+        </form>
+
         <div id="result"></div>
       </div>
     </div>
@@ -94,5 +113,32 @@
       }
       resultsDiv.appendChild(table);
     }
+
+     function sortStudents() {
+    var sortBySelect = document.getElementById("sortBySelect");
+    var sortMethodSelect = document.getElementById("sortMethodSelect");
+
+    // Check if both selects have valid values
+    if (sortBySelect.value !== "null" && sortMethodSelect.value !== "null") {
+      // Make an AJAX request to your API endpoint
+      var xhr = new XMLHttpRequest();
+      xhr.open("GET", "/students/sort?sortBy=" + sortBySelect.value + "&ascending=" + (sortMethodSelect.value === "asc"), true);
+      xhr.onreadystatechange = function () {
+        if (xhr.readyState === 4) {
+          if (xhr.status === 200) {
+            // Handle the response, e.g., display the sorted results
+            displaySearchResults(JSON.parse(xhr.responseText));
+          } else {
+            // Handle errors
+            alert("Error: " + xhr.statusText);
+          }
+        }
+      };
+      xhr.send();
+    } else {
+      // Display a message to the user indicating that both selects must have valid values
+      alert("Please select both sorting attributes.");
+    }
+  }
   </script>
 </html>
