@@ -13,7 +13,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.StringWriter;
 import java.util.ArrayList;
-import java.util.Collections;
+
 import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -102,7 +102,7 @@ public class StudentController {
     public String saveStudents(@RequestBody List<StudentRequest> studentRequests) {
         DocumentBuilderFactory dbf = DocumentBuilderFactory.newDefaultInstance();
         try {
-//            used for parsing xml
+            //            used for parsing xml
             DocumentBuilder builder = dbf.newDocumentBuilder();
 
             // Load existing XML document if it exists
@@ -121,8 +121,11 @@ public class StudentController {
             for (StudentRequest studentRequest : studentRequests) {
                 // Check if student with given ID already exists
                 if (isStudentAlreadySaved(doc, studentRequest.getId())) {
-                    System.out.println("Student with ID " + studentRequest.getId() + " is already saved.");
+                    // System.out.println("Student with ID " + studentRequest.getId() + " is already saved.");
                     continue; // Skip to the next student
+                }
+                if (!validateStudentData(studentRequest)) {
+                    continue;
                 }
 
                 Element student = doc.createElement("Student");
@@ -164,16 +167,16 @@ public class StudentController {
 
             DOMSource source = new DOMSource(doc);
             Result result = new StreamResult(xmlFile);
-//          used to  transform the source object into the result object
+            //          used to  transform the source object into the result object
             TransformerFactory transformerFactory = TransformerFactory.newInstance();
             Transformer transformer = transformerFactory.newTransformer();
             transformer.setOutputProperty(OutputKeys.OMIT_XML_DECLARATION, "no");
             transformer.setOutputProperty(OutputKeys.INDENT, "yes");
             transformer.transform(source, result);
 
-            System.out.println("OK" + XML_FILE_PATH);
+            // System.out.println("OK" + XML_FILE_PATH);
 
-        }catch (Exception e) {
+        } catch (Exception e) {
             e.printStackTrace();
             return "Error saving students: " + e.getMessage();
         }
@@ -350,7 +353,6 @@ public class StudentController {
     private boolean isStudentAlreadySaved(Document doc, String studentId) {
         Element root = doc.getDocumentElement();
         Element[] students = getChildElements(root, "Student");
-
         for (Element student : students) {
             if (studentId.equals(student.getAttribute("ID"))) {
                 return true;
@@ -372,5 +374,179 @@ public class StudentController {
 
         return elements.toArray(new Element[0]);
     }
+
+
+
+////////////////////////////////////////////////////
+    @GetMapping("/searchById")
+    public List<StudentRequest> searchById(@RequestParam double id) {
+        List<StudentRequest> result = new ArrayList<>();
+    
+        try {
+            File xmlFile = new File(XML_FILE_PATH);
+    
+            // Check if the file exists before attempting to parse it
+            if (!xmlFile.exists()) {
+                System.out.println("No students have been saved yet.");
+                return result;
+            }
+    
+            DocumentBuilderFactory dbf = DocumentBuilderFactory.newDefaultInstance();
+            DocumentBuilder builder = dbf.newDocumentBuilder();
+            Document doc = builder.parse(xmlFile);
+    
+            NodeList studentNodes = doc.getElementsByTagName("Student");
+    
+            for (int i = 0; i < studentNodes.getLength(); i++) {
+                Element studentElement = (Element) studentNodes.item(i);
+                String studentId = studentElement.getAttribute("ID");
+    
+                // Check if the studentId matches the provided double ID
+                if (Double.parseDouble(studentId) == id) {
+                    StudentRequest studentResponse = new StudentRequest();
+                    studentResponse.setId(studentId);
+                    studentResponse.setFirstName(getElementValue(studentElement, "FirstName"));
+                    studentResponse.setLastName(getElementValue(studentElement, "LastName"));
+                    studentResponse.setGender(getElementValue(studentElement, "Gender"));
+                    studentResponse.setGpa(Double.parseDouble(getElementValue(studentElement, "GPA")));
+                    studentResponse.setLevel(Integer.parseInt(getElementValue(studentElement, "Level")));
+                    studentResponse.setAddress(getElementValue(studentElement, "Address"));
+    
+                    result.add(studentResponse);
+                }
+            }
+    
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    
+        return result;
+    }
+
+    @PostMapping("/updateStudent")
+    public String updateStudent(@RequestBody List<StudentRequest> studentRequests) {
+        try {
+                if (!validateStudentData(studentRequests.get(0))) {
+                    return "invalid Values";
+                }
+            File xmlFile = new File(XML_FILE_PATH);
+            Document doc;
+    
+            // Load existing XML document if it exists
+            if (xmlFile.exists()) {
+                DocumentBuilderFactory dbf = DocumentBuilderFactory.newDefaultInstance();
+                DocumentBuilder builder = dbf.newDocumentBuilder();
+                doc = builder.parse(xmlFile);
+            } else {
+                // Create a new document if it doesn't exist
+                DocumentBuilderFactory dbf = DocumentBuilderFactory.newDefaultInstance();
+                DocumentBuilder builder = dbf.newDocumentBuilder();
+                doc = builder.newDocument();
+                Element root = doc.createElement("University");
+                doc.appendChild(root);
+            }
+    
+            Element root = doc.getDocumentElement();
+            
+
+            for (StudentRequest studentRequest : studentRequests) {
+                NodeList studentNodes = doc.getElementsByTagName("Student");
+
+                for (int i = 0; i < studentNodes.getLength(); i++) {
+                    Element studentElement = (Element) studentNodes.item(i);
+
+                    if (studentElement.getAttribute("ID").equals(studentRequest.getId())) {
+                        // Remove the matching student element
+                        Node parentNode = studentElement.getParentNode();
+                        parentNode.removeChild(studentElement);
+
+                        // Save the updated XML without introducing extra spaces
+                        saveUpdatedXml(doc);
+                    }
+                }
+                updateStudentInXml(doc, root, studentRequest);
+            }
+    
+            // Save the updated XML without introducing extra spaces
+            saveUpdatedXml(doc);
+    
+            return "Students saved successfully.";
+    
+        } catch (Exception e) {
+            e.printStackTrace(); // Add proper logging in a real application
+            return "Error saving students: " + e.getMessage();
+        }
+    }
+    
+    private void updateStudentInXml(Document doc, Element root, StudentRequest studentRequest) {
+
+        Element student = doc.createElement("Student");
+        student.setAttribute("ID", studentRequest.getId());
+    
+        Element firstName = createElementWithTextContent(doc, "FirstName", studentRequest.getFirstName());
+        Element lastName = createElementWithTextContent(doc, "LastName", studentRequest.getLastName());
+        Element gender = createElementWithTextContent(doc, "Gender", studentRequest.getGender());
+        Element gpa = createElementWithTextContent(doc, "GPA", String.valueOf(studentRequest.getGpa()));
+        Element level = createElementWithTextContent(doc, "Level", String.valueOf(studentRequest.getLevel()));
+        Element address = createElementWithTextContent(doc, "Address", studentRequest.getAddress());
+    
+        student.appendChild(firstName);
+        student.appendChild(lastName);
+        student.appendChild(gender);
+        student.appendChild(gpa);
+        student.appendChild(level);
+        student.appendChild(address);
+    
+        root.appendChild(student);
+    }
+    
+    private Element createElementWithTextContent(Document doc, String elementName, String textContent) {
+        Element element = doc.createElement(elementName);
+        Text text = doc.createTextNode(textContent);
+        element.appendChild(text);
+        return element;
+    }
+
+    public boolean validateStudentData(StudentRequest student) {
+        boolean isValid = true;
+
+        if ((Integer.parseInt(student.getId()) <= 0)) {
+            System.out.println("Invalid ID for Student");
+            isValid = false;
+        }
+
+        if (!(student.getFirstName().matches("^[a-zA-Z]+$"))) {
+            System.out.println("Invalid first name for Student");
+            isValid = false;
+        }
+
+        if (!(student.getLastName().matches("^[a-zA-Z]+$"))) {
+            System.out.println("Invalid last name for Student");
+            isValid = false;
+        }
+
+        if (!(student.getAddress().matches("^[a-zA-Z0-9,.\s]+$"))) {
+            System.out.println("Invalid address for Student");
+            isValid = false;
+        }
+
+        if (!(student.getGpa() >= 0 && student.getGpa() <= 4)) {
+            System.out.println("Invalid GPA for Student");
+            isValid = false;
+        }
+
+        if (!(student.getLevel() >= 1 && student.getLevel() <= 4)) {
+            System.out.println("Invalid level for Student");
+            isValid = false;
+        }
+
+        if (!(student.getGender().equalsIgnoreCase("male") || student.getGender().equalsIgnoreCase("female"))) {
+            System.out.println("Invalid gender for Student");
+            isValid = false;
+        }
+
+        return isValid;
+    }
+
 
 }

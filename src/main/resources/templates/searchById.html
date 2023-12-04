@@ -2,34 +2,34 @@
 <html xmlns:th="http://www.thymeleaf.org">
   <head>
     <meta charset="UTF-8" />
-    <title>Search by GPA</title>
+    <title>Search by ID</title>
     <link
       rel="stylesheet"
       href="https://cdn.jsdelivr.net/npm/water.css@2/out/water.css"
     />
   </head>
   <body>
-    <h2>Search by GPA</h2>
+    <h2>Search by ID</h2>
 
     <form id="searchForm">
-      <label>GPA:</label>
-      <input type="text" id="gpa" required /><br />
+      <label>ID:</label>
+      <input type="text" id="id" required /><br />
 
-      <button type="button" onclick="searchByGpa()">Search</button>
+      <button type="button" onclick="searchById()">Search</button>
     </form>
     <br />
     <div id="searchResults"></div>
 
     <script>
-      function searchByGpa() {
+      function searchById() {
         // Get form data
-        var gpa = document.getElementById("gpa").value;
+        var id = document.getElementById("id").value;
 
         // Make an AJAX request to your API endpoint
         var xhr = new XMLHttpRequest();
         xhr.open(
           "GET",
-          "/students/searchByGPA?gpa=" + encodeURIComponent(gpa),
+          "/students/searchById?id=" + encodeURIComponent(id),
           true
         );
         xhr.onreadystatechange = function () {

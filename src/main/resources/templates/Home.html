@@ -1,93 +1,98 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Student Service</title>
-    <link rel="stylesheet" href="font-awesome.min.css">
-
-    <link rel="stylesheet" href="Normalize.css">
-    <link rel="stylesheet" type="text/css" href="style.css">
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/water.css@2/out/dark.css">
-    <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;400&display=swap" rel="stylesheet">
-
-</head>
-<body>
-
-<div class="landing-page">
-    <div class="contianer-fluid">
+    <link rel="stylesheet" href="font-awesome.min.css" />
+    <link rel="stylesheet" href="Normalize.css" />
+    <link rel="stylesheet" type="text/css" href="style.css" />
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/water.css@2/out/dark.css"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;400&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <div class="landing-page">
+      <div class="contianer-fluid">
         <div class="header-area">
-            <div class="logo">STUDENTS SERVICE</div>
-            <div class="links-contianer">
-                <ul class="links  ">
-                    <li><a href="/add" data-section=".about-us">Add</a></li>
-                    <li><a href="/update" data-section=".update">update</a></li>
-                    <li><a href="/delete" data-section=".timeline">Delete</a></li>
-                      <li><a href="/searchName" data-section=".Ourgallery">Search By Name</a></li>
-                    <li><a href="/searchByGpa" data-section=".skills">Search By GPA</a></li>
-                </ul>
-            </div>
+          <div class="logo">STUDENTS SERVICE</div>
+          <div class="links-contianer">
+            <ul class="links">
+              <li><a href="/add" data-section=".about-us">Add</a></li>
+              <li><a href="/update" data-section=".update">update</a></li>
+              <li><a href="/delete" data-section=".timeline">Delete</a></li>
+              <li>
+                <a href="/searchName" data-section=".Ourgallery"
+                  >Search By Name</a
+                >
+              </li>
+              <li>
+                <a href="/searchByGpa" data-section=".skills">Search By GPA</a>
+              </li>
+              <li>
+                <a href="/searchById" data-section=".skills">Search By ID</a>
+              </li>
+            </ul>
+          </div>
         </div>
+      </div>
+      <div class="intro-text">
+        <h1>All Students</h1>
+        <div id="result"></div>
+      </div>
     </div>
-    <div class="intro-text">
-       <h1>All Students</h1>
-		<div id=result></div>
-    </div>
+  </body>
+  <script>
+    window.onload = function () {
+      // Make an AJAX request to your API endpoint
+      var xhr = new XMLHttpRequest();
+      xhr.open("GET", "/students/allStudents", true);
+      xhr.onreadystatechange = function () {
+        if (xhr.readyState === 4) {
+          if (xhr.status === 200) {
+            // Handle the response, e.g., display the search results
+            displaySearchResults(JSON.parse(xhr.responseText));
+          } else {
+            // Handle errors
+            alert("Error: " + xhr.statusText);
+          }
+        }
+      };
+      xhr.send();
+    };
 
-</div>
+    function displaySearchResults(results) {
+      var resultsDiv = document.getElementById("result");
+      resultsDiv.innerHTML = ""; // Clear previous results
 
+      if (results.length === 0) {
+        resultsDiv.innerHTML = "No students found.";
+        return;
+      }
 
-</body>
-		<Script>
-	 window.onload = function () 
-		{
-			// Make an AJAX request to your API endpoint
-	        var xhr = new XMLHttpRequest();
-	        xhr.open("GET", "/students/allStudents", true);
-	        xhr.onreadystatechange = function () {
-	            if (xhr.readyState === 4) {
-	                if (xhr.status === 200) {
-	                    // Handle the response, e.g., display the search results
-	                    displaySearchResults(JSON.parse(xhr.responseText));
-	                } else {
-	                    // Handle errors
-	                    alert("Error: " + xhr.statusText);
-	                }
-	            }
-	        };
-	        xhr.send();
-		}
-		
-		 function displaySearchResults(results) {
-		        var resultsDiv = document.getElementById("result");
-		        resultsDiv.innerHTML = ""; // Clear previous results
+      var table = document.createElement("table");
+      table.border = "1";
 
-		        if (results.length === 0) {
-		            resultsDiv.innerHTML = "No students found.";
-		            return;
-		        }
-
-		        var table = document.createElement("table");
-		        table.border = "1";
-
-		        // Create table headers
-		        var headerRow = table.insertRow(0);
-		        for (var key in results[0]) {
-		            var headerCell = headerRow.insertCell();
-		            headerCell.innerHTML = key;
-		        }
-
-		        // Fill in table data
-		        for (var i = 0; i < results.length; i++) {
-		            var row = table.insertRow();
-		            for (var key in results[i]) {
-		                var cell = row.insertCell();
-		                cell.innerHTML = results[i][key];
-		            }
-		        }
-
-		        resultsDiv.appendChild(table);
-		    }
-	</Script>
+      // Create table headers
+      var headerRow = table.insertRow(0);
+      for (var key in results[0]) {
+        var headerCell = headerRow.insertCell();
+        headerCell.innerHTML = key;
+      }
+      for (var i = 0; i < results.length; i++) {
+        var row = table.insertRow();
+        for (var key in results[i]) {
+          var cell = row.insertCell();
+          cell.innerHTML = results[i][key];
+        }
+      }
+      resultsDiv.appendChild(table);
+    }
+  </script>
 </html>
